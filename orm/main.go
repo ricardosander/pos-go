@@ -13,67 +13,58 @@ func main() {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	dao := NewProductDTO(db)
-	
-	dao.create(&Product{
-		Name:  "Product A",
-		Price: 100.0,
-	})
+	db.AutoMigrate(&Product{}, &Category{}, &SerialNumber{}, &Tag{})
+	productRepository := NewProductRepository(db)
+	// categoryRepository := NewCategoryRepository(db)
 
-	products := &[]Product{
-		{Name: "Product B", Price: 200.0},
-		{Name: "Product C", Price: 300.0},
-	}
-	dao.createBatch(products)
+	// tags := []*Tag{
+	// 	{Name: "PROMOTION"},
+	// 	{Name: "NERD"},
+	// 	{Name: "GEEK"},
+	// 	{Name: "BESTSELLER"},
+	// 	{Name: "NEW"},
+	// }	
+	// for _, t := range tags {
+	// 	db.Create(t)
+	// }
 
-	product := dao.firstById(1)
-	fmt.Println("Product by id:")
-	product.print()
+	// eletronics := &Category{Name: "Electronics"}
+	// books := &Category{Name: "Books"}
+	// categories := []*Category{
+	// 	eletronics,
+	// 	books,
+	// }
+	// for _, c := range categories {
+	// 	categoryRepository.create(c)
+	// }
 
-	product = dao.findFirstByQuery("name = ?", "Product B")
-	fmt.Println("Product by query:")
-	product.print()
+	// products := []Product{
+	// 	{Name: "Notebbok", Price: 1000, CategoryID: eletronics.ID, Tags: []Tag{*tags[1], *tags[2],  *tags[4]}},
+	// 	{Name: "Mouse", Price: 30, CategoryID: eletronics.ID, Tags: []Tag{*tags[0], *tags[1], *tags[2]}},
+	// 	{Name: "Game of Thrones", Price: 50, CategoryID: books.ID, Tags: []Tag{*tags[3], *tags[1], *tags[2]}},
+	// }
+	// for _, p := range products {
+	// 	productRepository.create(&p)
+	// }
 
-	products = dao.findAll()
-	fmt.Println("All products:")
-	print(*products)
-
-	products = dao.limitQuery(2)
-	fmt.Println("Limit query:")
-	print(*products)
-
-	products = dao.limitOffetQuery(2, 10)
-	fmt.Println("Limit and offset query:")
-	print(*products)
-
-	products = dao.whereQuery("price > ?", 150.0)
-	fmt.Println("Where query:")
-	print(*products)
-
-	products = dao.likeQuery("% C%")
-	fmt.Println("Like query:")
-	print(*products)
-	for _, p := range *products {
-		p.Name = "Mouse"
-		dao.update(&p)
-	}
-
-	products = dao.whereQuery("name = ?", "Mouse")
-	fmt.Println("Updated products:")	
-	print(*products)
-
-	products = dao.whereQuery("name = ?", "Product B")
-	for _, p := range *products {
-		dao.delete(&p)
+	products2 := productRepository.findAllWithRelations()
+	for _, p := range *products2 {
+		fmt.Println("Product: ", p.Name)
+		fmt.Println("Category: ", p.Category.Name)
+		fmt.Println("Serial Number: ", p.SerialNumber.Number)
+		fmt.Println("Tags: ")
+		for _, t := range p.Tags {
+			fmt.Println(" - ", t.Name)
+		}
+		fmt.Println()
 	}
 
-	products = dao.findAll()
-	fmt.Println("All products")
-	print(*products)
-}
-
-func print(ps []Product) {
-	for _, p := range ps {
-		p.print()
+	var tags2 []Tag
+	db.Preload("Products").Find(&tags2)
+	for _, t := range tags2 {
+		fmt.Printf("\nTag %s, Products:\n", t.Name)
+		for _, p := range t.Products {
+			fmt.Println("-", p.Name)
+		}
 	}
 }
